@@ -113,7 +113,7 @@ L'application suit une architecture **client-serveur** avec séparation stricte 
 ### 1. Cloner le projet
 
 ```bash
-git clone <url-du-repo>
+git clone <https://github.com/Yannmgh/Velib_Paris.git>
 cd velib-project
 ```
 
