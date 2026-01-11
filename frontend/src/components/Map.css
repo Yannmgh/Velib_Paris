@@ -1,0 +1,176 @@
+.map-container {
+  width: 100%;
+  height: 100vh;
+  position: relative;
+}
+
+.map-controls {
+  position: absolute;
+  top: 80px;
+  left: 20px;
+  z-index: 10;
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  max-width: 300px;
+}
+
+.add-station-button {
+  background: linear-gradient(135deg, #62a2e2 0%, #6da8ed 100%);
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 5px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.add-station-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(84, 159, 229, 0.4);
+}
+
+.radius-control {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.radius-control label {
+  font-weight: 500;
+  color: #333;
+}
+
+.radius-control input[type="range"] {
+  width: 100%;
+}
+
+.station-count {
+  font-weight: 500;
+  color: #5ca3f3;
+  padding: 8px;
+  background-color: #f0f0ff;
+  border-radius: 5px;
+  text-align: center;
+}
+
+.map-hint {
+  font-size: 12px;
+  color: #888;
+  text-align: center;
+  padding: 8px;
+  background-color: #fffbf0;
+  border-radius: 5px;
+}
+
+.marker {
+  font-size: 32px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.marker:hover {
+  transform: scale(1.2);
+}
+
+.popup-content {
+  min-width: 200px;
+}
+
+.popup-content h3 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 16px;
+}
+
+.popup-content p {
+  margin: 5px 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.popup-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 15px;
+}
+
+.edit-button,
+.delete-button {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 5px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.edit-button {
+  background-color: #6ab0ee;
+  color: white;
+}
+
+.edit-button:hover {
+  background-color: #5ca8e3;
+}
+
+.delete-button {
+  background-color: #ff4444;
+  color: white;
+}
+
+.delete-button:hover {
+  background-color: #cc0000;
+}
+
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 24px;
+  font-weight: 600;
+  color: #5c95eb;
+  z-index: 1001;
+}
+
+/* Style pour les popups Mapbox */
+.mapboxgl-popup-content {
+  padding: 15px !important;
+  border-radius: 8px !important;
+}
+
+.mapboxgl-popup-close-button {
+  font-size: 20px !important;
+  padding: 0 8px !important;
+}
+
+.custom-marker {
+  transition: transform 0.2s;
+}
+
+.custom-marker:hover {
+  transform: scale(1.2);
+}
+
+.mapboxgl-popup-content {
+  padding: 15px !important;
+  border-radius: 8px !important;
+}
+
+.mapboxgl-popup-close-button {
+  font-size: 20px !important;
+  padding: 0 8px !important;
+}
