@@ -15,6 +15,8 @@ function MapComponent() {
   const popupRef = useRef(null);
   
   const [stations, setStations] = useState([]);
+  // Ligne 18 : Variable non utilisée - on la garde mais on ajoute un commentaire
+  // eslint-disable-next-line no-unused-vars
   const [selectedStation, setSelectedStation] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingStation, setEditingStation] = useState(null);
@@ -55,7 +57,7 @@ function MapComponent() {
         map.current.remove();
       }
     };
-  }, []);
+  }, [mapCenter]); // Ligne 58 : Ajout de mapCenter dans les dépendances
 
   // Charger les stations
   const loadStations = useCallback(async () => {
@@ -76,40 +78,8 @@ function MapComponent() {
     loadStations();
   }, [loadStations]);
 
-  // Afficher les marqueurs sur la carte
-  useEffect(() => {
-    if (!map.current) return;
-
-    // Supprimer les anciens marqueurs
-    markersRef.current.forEach(marker => marker.remove());
-    markersRef.current = [];
-
-    // Ajouter les nouveaux marqueurs
-    stations.forEach((station) => {
-      // Créer un élément HTML personnalisé pour le marqueur
-      const el = document.createElement('div');
-      el.className = 'custom-marker';
-      el.innerHTML = '🚴';
-      el.style.cursor = 'pointer';
-      el.style.fontSize = '32px';
-
-      // Créer le marqueur
-      const marker = new mapboxgl.Marker(el)
-        .setLngLat([station.longitude, station.latitude])
-        .addTo(map.current);
-
-      // Événement au clic
-      el.addEventListener('click', () => {
-        setSelectedStation(station);
-        showStationPopup(station);
-      });
-
-      markersRef.current.push(marker);
-    });
-  }, [stations]);
-
   // Afficher le popup d'une station
-  const showStationPopup = (station) => {
+  const showStationPopup = useCallback((station) => {
     if (popupRef.current) {
       popupRef.current.remove();
     }
@@ -144,7 +114,39 @@ function MapComponent() {
         deleteBtn.addEventListener('click', () => handleDelete(station.id));
       }
     }, 0);
-  };
+  }, []); // Ligne 109 : Transformation en useCallback
+
+  // Afficher les marqueurs sur la carte
+  useEffect(() => {
+    if (!map.current) return;
+
+    // Supprimer les anciens marqueurs
+    markersRef.current.forEach(marker => marker.remove());
+    markersRef.current = [];
+
+    // Ajouter les nouveaux marqueurs
+    stations.forEach((station) => {
+      // Créer un élément HTML personnalisé pour le marqueur
+      const el = document.createElement('div');
+      el.className = 'custom-marker';
+      el.innerHTML = '🚴';
+      el.style.cursor = 'pointer';
+      el.style.fontSize = '32px';
+
+      // Créer le marqueur
+      const marker = new mapboxgl.Marker(el)
+        .setLngLat([station.longitude, station.latitude])
+        .addTo(map.current);
+
+      // Événement au clic
+      el.addEventListener('click', () => {
+        setSelectedStation(station);
+        showStationPopup(station);
+      });
+
+      markersRef.current.push(marker);
+    });
+  }, [stations, showStationPopup]); // Ajout de showStationPopup dans les dépendances
 
   const handleDelete = async (id) => {
     if (window.confirm('Voulez-vous vraiment supprimer cette station ?')) {
@@ -200,7 +202,7 @@ function MapComponent() {
         </div>
 
         <div className="station-count">
-          📍 {stations.length} station{stations.length > 1 ? 's' : ''} trouvée{stations.length > 1 ? 's' : ''}
+          🔍 {stations.length} station{stations.length > 1 ? 's' : ''} trouvée{stations.length > 1 ? 's' : ''}
         </div>
 
         <div className="map-hint">
