@@ -1,3 +1,4 @@
+import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
@@ -11,7 +12,9 @@ app = Flask(__name__)
 app.config.from_object(Config)
 
 # Active CORS pour permettre au frontend de communiquer avec le backend
-CORS(app)
+# En production, remplacer par l'URL du frontend déployé
+allowed_origins = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+CORS(app, resources={r"/api/*": {"origins": allowed_origins.split(',')}})
 
 # Initialise JWT pour l'authentification
 jwt = JWTManager(app)
@@ -291,8 +294,6 @@ def create_station():
           properties:
             station_id:
               type: string
-              description: ID unique (optionnel - généré automatiquement si non fourni)
-              example: null
             name:
               type: string
               example: Nouvelle station Vélib
@@ -327,8 +328,8 @@ def create_station():
     try:
         conn = get_db_connection()
         
-        # Génère un station_id unique si non fourni ou vide
-        station_id = data.get('station_id', '').strip()
+        # Génère un station_id unique si non fourni
+        station_id = data.get('station_id')
         if not station_id:
             station_id = f"STATION-{str(uuid.uuid4())[:8].upper()}"
         
@@ -399,8 +400,7 @@ def update_station(station_id):
     
     try:
         conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute('''
+        conn.execute('''
             UPDATE stations
             SET name = ?, latitude = ?, longitude = ?, capacity = ?, address = ?
             WHERE id = ?
@@ -414,7 +414,7 @@ def update_station(station_id):
         ))
         conn.commit()
         
-        if cursor.rowcount == 0:
+        if conn.total_changes == 0:
             return jsonify({'error': 'Station non trouvée'}), 404
         
         return jsonify({'message': 'Station mise à jour'}), 200
@@ -452,11 +452,10 @@ def delete_station(station_id):
     """
     try:
         conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute('DELETE FROM stations WHERE id = ?', (station_id,))
+        conn.execute('DELETE FROM stations WHERE id = ?', (station_id,))
         conn.commit()
         
-        if cursor.rowcount == 0:
+        if conn.total_changes == 0:
             return jsonify({'error': 'Station non trouvée'}), 404
         
         return jsonify({'message': 'Station supprimée'}), 200
