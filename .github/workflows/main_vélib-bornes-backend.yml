@@ -70,8 +70,15 @@ jobs:
         with:
           app-name: 'Vélib-Bornes-backend'
           slot-name: 'Production'
-          package: backend/
+          package: .
           
+      - name: Configure Startup Command
+        run: |
+          az webapp config set \
+            --resource-group "Vélib-Bornes-backend_group" \
+            --name "Vélib-Bornes-backend" \
+            --startup-file "bash /home/site/wwwroot/run.sh"
+            
       - name: Restart Azure App Service
         run: |
-          az webapp restart --resource-group "Vélib-Bornes-backend" --name "Vélib-Bornes-backend" || true
+          az webapp restart --resource-group "Vélib-Bornes-backend_group" --name "Vélib-Bornes-backend" || true
