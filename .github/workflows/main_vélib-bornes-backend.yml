@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'backend/**'
   workflow_dispatch:
 
 jobs:
@@ -20,20 +22,22 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Create and Start virtual environment and Install dependencies
+      - name: Create and start virtual environment
+        working-directory: ./backend
         run: |
-          cd backend
           python -m venv antenv
           source antenv/bin/activate
           pip install -r requirements.txt
                 
+      - name: Zip artifact for deployment
+        working-directory: ./backend
+        run: zip -r ../release.zip .
+      
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4
         with:
           name: python-app
-          path: |
-            backend/
-            !backend/antenv/
+          path: release.zip
 
   deploy:
     runs-on: ubuntu-latest
@@ -48,6 +52,9 @@ jobs:
         with:
           name: python-app
       
+      - name: Unzip artifact for deployment
+        run: unzip release.zip
+      
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -61,5 +68,3 @@ jobs:
         with:
           app-name: 'Vélib-Bornes-backend'
           slot-name: 'Production'
-          package: .
-          startup-command: 'gunicorn --bind=0.0.0.0:8000 --timeout 600 app:app'
