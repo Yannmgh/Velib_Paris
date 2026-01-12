@@ -74,4 +74,6 @@ jobs:
         with:
           app-name: 'Vélib-Bornes-backend'
           slot-name: 'Production'
+          package: .
+          type: 'zip'
           
