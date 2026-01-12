@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'backend/**'
   workflow_dispatch:
 
 jobs:
@@ -27,11 +25,7 @@ jobs:
           cd backend
           python -m venv antenv
           source antenv/bin/activate
-          pip install --upgrade pip
           pip install -r requirements.txt
-          
-      - name: Copy requirements.txt to root for Azure
-        run: cp backend/requirements.txt requirements.txt
                 
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4
@@ -39,10 +33,7 @@ jobs:
           name: python-app
           path: |
             backend/
-            requirements.txt
             !backend/antenv/
-            !backend/__pycache__/
-            !backend/venv/
 
   deploy:
     runs-on: ubuntu-latest
