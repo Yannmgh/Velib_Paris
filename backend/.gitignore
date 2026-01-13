@@ -1,0 +1,33 @@
+# Environnements virtuels
+.env
+.venv
+venv/
+env/
+antenv/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Base de données (si temporaire)
+*.sqlite
+*.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# CSV (si trop gros)
+# velib-pos.csv  # Décommentez si vous ne voulez pas l'uploader
