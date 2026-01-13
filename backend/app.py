@@ -13,7 +13,7 @@ app.config.from_object(Config)
 
 # Active CORS pour permettre au frontend de communiquer avec le backend
 # En production, remplacer par l'URL du frontend déployé
-allowed_origins = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+allowed_origins = os.getenv('FRONTEND_URL', 'https://gray-pebble-0bfc84a03.1.azurestaticapps.net')
 CORS(app, resources={r"/api/*": {"origins": allowed_origins.split(',')}})
 
 # Initialise JWT pour l'authentification
