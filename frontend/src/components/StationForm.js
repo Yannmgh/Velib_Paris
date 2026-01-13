@@ -46,12 +46,14 @@ function StationForm({ station, onClose, onSuccess }) {
         address: formData.address,
       };
 
-      if (station) {
+      if (station && station.id) {
         // Mode édition
         await updateStation(station.id, data);
+        alert('Station modifiée avec succès !');
       } else {
         // Mode création
         await createStation(data);
+        alert('Station créée avec succès !');
       }
 
       onSuccess();
@@ -68,7 +70,7 @@ function StationForm({ station, onClose, onSuccess }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>{station ? '✏️ Modifier la station' : '➕ Nouvelle station'}</h2>
+          <h2>{station?.id ? '✏️ Modifier la station' : '➕ Nouvelle station'}</h2>
           <button className="close-button" onClick={onClose}>×</button>
         </div>
 

@@ -15,68 +15,37 @@ function MapComponent() {
   const popupRef = useRef(null);
   
   const [stations, setStations] = useState([]);
-  // Ligne 18 : Variable non utilisée - on la garde mais on ajoute un commentaire
-  // eslint-disable-next-line no-unused-vars
   const [selectedStation, setSelectedStation] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingStation, setEditingStation] = useState(null);
   const [loading, setLoading] = useState(false);
   const [searchRadius, setSearchRadius] = useState(5);
-  const [mapCenter, setMapCenter] = useState([2.3522, 48.8566]); // [lng, lat] pour Mapbox
+  const [mapCenter, setMapCenter] = useState([2.3522, 48.8566]); // [lng, lat]
 
-  // Initialiser la carte
-  useEffect(() => {
-    if (map.current) return; // La carte est déjà initialisée
-
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/streets-v12',
-      center: mapCenter,
-      zoom: 13,
-    });
-
-    // Événement de fin de déplacement
-    map.current.on('moveend', () => {
-      const center = map.current.getCenter();
-      setMapCenter([center.lng, center.lat]);
-    });
-
-    // Shift + Clic pour créer une station
-    map.current.on('click', (e) => {
-      if (e.originalEvent.shiftKey) {
-        setEditingStation({
-          latitude: e.lngLat.lat,
-          longitude: e.lngLat.lng,
-        });
-        setShowForm(true);
+  // ✅ CORRECTION 1 : Fonctions déclarées AVANT d'être utilisées
+  const handleDelete = useCallback(async (id) => {
+    if (window.confirm('Voulez-vous vraiment supprimer cette station ?')) {
+      try {
+        await deleteStation(id);
+        if (popupRef.current) {
+          popupRef.current.remove();
+        }
+        setSelectedStation(null);
+        // On va recharger après
+      } catch (error) {
+        console.error('Erreur lors de la suppression:', error);
+        alert('Erreur lors de la suppression de la station');
       }
-    });
-
-    return () => {
-      if (map.current) {
-        map.current.remove();
-      }
-    };
-  }, [mapCenter]); // Ligne 58 : Ajout de mapCenter dans les dépendances
-
-  // Charger les stations
-  const loadStations = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await getStations(mapCenter[1], mapCenter[0], searchRadius);
-      setStations(data);
-      console.log(`${data.length} stations chargées`);
-    } catch (error) {
-      console.error('Erreur lors du chargement des stations:', error);
-      alert('Erreur lors du chargement des stations');
-    } finally {
-      setLoading(false);
     }
-  }, [mapCenter, searchRadius]);
+  }, []);
 
-  useEffect(() => {
-    loadStations();
-  }, [loadStations]);
+  const handleEdit = useCallback((station) => {
+    setEditingStation(station);
+    setShowForm(true);
+    if (popupRef.current) {
+      popupRef.current.remove();
+    }
+  }, []);
 
   // Afficher le popup d'une station
   const showStationPopup = useCallback((station) => {
@@ -114,7 +83,88 @@ function MapComponent() {
         deleteBtn.addEventListener('click', () => handleDelete(station.id));
       }
     }, 0);
-  }, []); // Ligne 109 : Transformation en useCallback
+  }, [handleEdit, handleDelete]);
+
+  // ✅ CORRECTION 2 : Charger les stations (avec gestion du reload)
+  const loadStations = useCallback(async () => {
+    if (!map.current) return;
+    
+    setLoading(true);
+    try {
+      const center = map.current.getCenter();
+      const data = await getStations(center.lat, center.lng, searchRadius);
+      setStations(data);
+      console.log(`${data.length} stations chargées`);
+    } catch (error) {
+      console.error('Erreur lors du chargement des stations:', error);
+      alert('Erreur lors du chargement des stations');
+    } finally {
+      setLoading(false);
+    }
+  }, [searchRadius]);
+
+  // ✅ CORRECTION 3 : Initialiser la carte UNE SEULE FOIS (sans mapCenter dans deps)
+  useEffect(() => {
+    if (map.current) return; // Déjà initialisée
+
+    if (!mapboxgl.accessToken) {
+      console.error('❌ Token Mapbox manquant !');
+      alert('Erreur : Token Mapbox non configuré');
+      return;
+    }
+
+    try {
+      map.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: mapCenter,
+        zoom: 13,
+      });
+
+      // Ajouter les contrôles de navigation
+      map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+      // Événement de fin de déplacement
+      map.current.on('moveend', () => {
+        loadStations();
+      });
+
+      // Shift + Clic pour créer une station
+      map.current.on('click', (e) => {
+        if (e.originalEvent.shiftKey) {
+          setEditingStation({
+            latitude: e.lngLat.lat,
+            longitude: e.lngLat.lng,
+          });
+          setShowForm(true);
+        }
+      });
+
+      // Charger les stations au démarrage
+      map.current.on('load', () => {
+        loadStations();
+      });
+
+      console.log('✅ Carte initialisée avec succès');
+    } catch (error) {
+      console.error('❌ Erreur initialisation carte:', error);
+    }
+
+    // Cleanup
+    return () => {
+      if (map.current) {
+        map.current.remove();
+        map.current = null;
+      }
+    };
+  }, []); // ✅ Tableau vide = s'exécute UNE SEULE FOIS
+
+  // Recharger quand le rayon change
+  useEffect(() => {
+    if (map.current) {
+      loadStations();
+    }
+  }, [searchRadius, loadStations]);
 
   // Afficher les marqueurs sur la carte
   useEffect(() => {
@@ -126,19 +176,16 @@ function MapComponent() {
 
     // Ajouter les nouveaux marqueurs
     stations.forEach((station) => {
-      // Créer un élément HTML personnalisé pour le marqueur
       const el = document.createElement('div');
       el.className = 'custom-marker';
       el.innerHTML = '🚴';
       el.style.cursor = 'pointer';
       el.style.fontSize = '32px';
 
-      // Créer le marqueur
       const marker = new mapboxgl.Marker(el)
         .setLngLat([station.longitude, station.latitude])
         .addTo(map.current);
 
-      // Événement au clic
       el.addEventListener('click', () => {
         setSelectedStation(station);
         showStationPopup(station);
@@ -146,31 +193,7 @@ function MapComponent() {
 
       markersRef.current.push(marker);
     });
-  }, [stations, showStationPopup]); // Ajout de showStationPopup dans les dépendances
-
-  const handleDelete = async (id) => {
-    if (window.confirm('Voulez-vous vraiment supprimer cette station ?')) {
-      try {
-        await deleteStation(id);
-        if (popupRef.current) {
-          popupRef.current.remove();
-        }
-        setSelectedStation(null);
-        loadStations();
-      } catch (error) {
-        console.error('Erreur lors de la suppression:', error);
-        alert('Erreur lors de la suppression de la station');
-      }
-    }
-  };
-
-  const handleEdit = (station) => {
-    setEditingStation(station);
-    setShowForm(true);
-    if (popupRef.current) {
-      popupRef.current.remove();
-    }
-  };
+  }, [stations, showStationPopup]);
 
   const handleAddNew = () => {
     setEditingStation(null);
@@ -178,6 +201,7 @@ function MapComponent() {
   };
 
   const handleFormSuccess = () => {
+    setShowForm(false);
     loadStations();
   };
 
@@ -202,7 +226,7 @@ function MapComponent() {
         </div>
 
         <div className="station-count">
-          🔍 {stations.length} station{stations.length > 1 ? 's' : ''} trouvée{stations.length > 1 ? 's' : ''}
+          📍 {stations.length} station{stations.length > 1 ? 's' : ''} trouvée{stations.length > 1 ? 's' : ''}
         </div>
 
         <div className="map-hint">
@@ -212,11 +236,13 @@ function MapComponent() {
 
       <div ref={mapContainer} className="map" style={{ height: 'calc(100vh - 70px)' }} />
 
-      {/* Formulaire modal */}
       {showForm && (
         <StationForm
           station={editingStation}
-          onClose={() => setShowForm(false)}
+          onClose={() => {
+            setShowForm(false);
+            setEditingStation(null);
+          }}
           onSuccess={handleFormSuccess}
         />
       )}
