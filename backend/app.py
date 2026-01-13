@@ -12,7 +12,6 @@ app = Flask(__name__)
 app.config.from_object(Config)
 
 # ============== CONFIGURATION CORS CORRIGÉE ==============
-# Autorise le frontend Azure ET localhost pour le développement
 allowed_origins = [
     'https://gray-pebble-0bfc84a03.1.azurestaticapps.net',
     'http://localhost:3000',
@@ -20,14 +19,12 @@ allowed_origins = [
     'http://127.0.0.1:3000'
 ]
 
-# Active CORS pour TOUTES les routes (pas seulement /api/*)
 CORS(app, 
      origins=allowed_origins,
      supports_credentials=True,
      allow_headers=["Content-Type", "Authorization"],
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
-# Initialise JWT pour l'authentification
 jwt = JWTManager(app)
 
 # Configuration Swagger
@@ -70,61 +67,21 @@ swagger_template = {
 
 swagger = Swagger(app, config=swagger_config, template=swagger_template)
 
-# Fonction utilitaire pour calculer la distance entre deux points GPS
 def calculate_distance(lat1, lon1, lat2, lon2):
     """Calcule la distance en km entre deux coordonnées GPS (formule de Haversine)"""
-    R = 6371  # Rayon de la Terre en km
-    
+    R = 6371
     dlat = math.radians(lat2 - lat1)
     dlon = math.radians(lon2 - lon1)
-    
     a = math.sin(dlat/2) * math.sin(dlat/2) + math.cos(math.radians(lat1)) \
         * math.cos(math.radians(lat2)) * math.sin(dlon/2) * math.sin(dlon/2)
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
-    
     return R * c
 
 # ============== ROUTES D'AUTHENTIFICATION ==============
 
 @app.route('/api/login', methods=['POST'])
 def login():
-    """
-    Authentification utilisateur
-    ---
-    tags:
-      - Authentification
-    parameters:
-      - name: body
-        in: body
-        required: true
-        schema:
-          type: object
-          required:
-            - username
-            - password
-          properties:
-            username:
-              type: string
-              example: admin
-            password:
-              type: string
-              example: admin123
-    responses:
-      200:
-        description: Connexion réussie
-        schema:
-          type: object
-          properties:
-            access_token:
-              type: string
-              description: Token JWT pour les requêtes authentifiées
-            username:
-              type: string
-      400:
-        description: Paramètres manquants
-      401:
-        description: Identifiants invalides
-    """
+    """Authentification utilisateur"""
     data = request.get_json()
     
     if not data or 'username' not in data or 'password' not in data:
@@ -133,7 +90,6 @@ def login():
     username = data['username']
     password = data['password']
     
-    # Vérifie les identifiants
     conn = get_db_connection()
     user = conn.execute(
         'SELECT * FROM users WHERE username = ? AND password = ?',
@@ -142,10 +98,11 @@ def login():
     conn.close()
     
     if user:
-        # Crée un token JWT
         access_token = create_access_token(identity=username)
+        print(f"✅ Login réussi pour {username}")
         return jsonify({'access_token': access_token, 'username': username}), 200
     else:
+        print(f"❌ Login échoué pour {username}")
         return jsonify({'error': 'Identifiants invalides'}), 401
 
 # ============== ROUTES POUR LES STATIONS ==============
@@ -153,65 +110,12 @@ def login():
 @app.route('/api/stations', methods=['GET'])
 @jwt_required()
 def get_stations():
-    """
-    Récupère les stations autour d'une position
-    ---
-    tags:
-      - Stations
-    security:
-      - Bearer: []
-    parameters:
-      - name: lat
-        in: query
-        type: number
-        required: true
-        description: Latitude de la position
-        example: 48.8566
-      - name: lon
-        in: query
-        type: number
-        required: true
-        description: Longitude de la position
-        example: 2.3522
-      - name: radius
-        in: query
-        type: number
-        required: false
-        default: 2.0
-        description: Rayon de recherche en km
-    responses:
-      200:
-        description: Liste des stations à proximité
-        schema:
-          type: array
-          items:
-            type: object
-            properties:
-              id:
-                type: integer
-              station_id:
-                type: string
-              name:
-                type: string
-              latitude:
-                type: number
-              longitude:
-                type: number
-              capacity:
-                type: integer
-              address:
-                type: string
-              distance:
-                type: number
-      400:
-        description: Paramètres manquants
-      401:
-        description: Non authentifié
-    """
-    # Récupère les paramètres de la requête
+    """Récupère les stations autour d'une position"""
     lat = request.args.get('lat', type=float)
     lon = request.args.get('lon', type=float)
-    radius = request.args.get('radius', default=2.0, type=float)  # Rayon en km
+    radius = request.args.get('radius', default=2.0, type=float)
+    
+    print(f"🔍 GET /api/stations - lat={lat}, lon={lon}, radius={radius}km")
     
     if lat is None or lon is None:
         return jsonify({'error': 'Paramètres lat et lon requis'}), 400
@@ -220,7 +124,6 @@ def get_stations():
     stations = conn.execute('SELECT * FROM stations').fetchall()
     conn.close()
     
-    # Filtre les stations dans le rayon spécifié
     nearby_stations = []
     for station in stations:
         distance = calculate_distance(lat, lon, station['latitude'], station['longitude'])
@@ -236,42 +139,26 @@ def get_stations():
                 'distance': round(distance, 2)
             })
     
-    # Trie par distance
     nearby_stations.sort(key=lambda x: x['distance'])
+    print(f"✅ {len(nearby_stations)} stations trouvées dans un rayon de {radius}km")
     
     return jsonify(nearby_stations), 200
 
 @app.route('/api/stations/<int:station_id>', methods=['GET'])
 @jwt_required()
 def get_station(station_id):
-    """
-    Récupère une station spécifique
-    ---
-    tags:
-      - Stations
-    security:
-      - Bearer: []
-    parameters:
-      - name: station_id
-        in: path
-        type: integer
-        required: true
-        description: ID de la station
-    responses:
-      200:
-        description: Détails de la station
-      404:
-        description: Station non trouvée
-      401:
-        description: Non authentifié
-    """
+    """Récupère une station spécifique"""
+    print(f"🔍 GET /api/stations/{station_id}")
+    
     conn = get_db_connection()
     station = conn.execute('SELECT * FROM stations WHERE id = ?', (station_id,)).fetchone()
     conn.close()
     
     if station is None:
+        print(f"❌ Station {station_id} non trouvée")
         return jsonify({'error': 'Station non trouvée'}), 404
     
+    print(f"✅ Station {station_id} trouvée: {station['name']}")
     return jsonify({
         'id': station['id'],
         'station_id': station['station_id'],
@@ -285,52 +172,9 @@ def get_station(station_id):
 @app.route('/api/stations', methods=['POST'])
 @jwt_required()
 def create_station():
-    """
-    Crée une nouvelle station
-    ---
-    tags:
-      - Stations
-    security:
-      - Bearer: []
-    parameters:
-      - name: body
-        in: body
-        required: true
-        schema:
-          type: object
-          required:
-            - name
-            - latitude
-            - longitude
-          properties:
-            station_id:
-              type: string
-            name:
-              type: string
-              example: Nouvelle station Vélib
-            latitude:
-              type: number
-              example: 48.8566
-            longitude:
-              type: number
-              example: 2.3522
-            capacity:
-              type: integer
-              example: 20
-            address:
-              type: string
-              example: 1 rue de Rivoli, Paris
-    responses:
-      201:
-        description: Station créée avec succès
-      400:
-        description: Champs requis manquants
-      401:
-        description: Non authentifié
-      500:
-        description: Erreur serveur
-    """
+    """Crée une nouvelle station"""
     data = request.get_json()
+    print(f"🔍 POST /api/stations - Data: {data}")
     
     required_fields = ['name', 'latitude', 'longitude']
     if not all(field in data for field in required_fields):
@@ -339,7 +183,6 @@ def create_station():
     try:
         conn = get_db_connection()
         
-        # Génère un station_id unique si non fourni
         station_id = data.get('station_id')
         if not station_id:
             station_id = f"STATION-{str(uuid.uuid4())[:8].upper()}"
@@ -358,8 +201,10 @@ def create_station():
         conn.commit()
         new_id = cursor.lastrowid
         
+        print(f"✅ Station créée: ID={new_id}, name={data['name']}")
         return jsonify({'message': 'Station créée', 'id': new_id, 'station_id': station_id}), 201
     except Exception as e:
+        print(f"❌ Erreur création station: {e}")
         return jsonify({'error': str(e)}), 500
     finally:
         if 'conn' in locals():
@@ -368,49 +213,30 @@ def create_station():
 @app.route('/api/stations/<int:station_id>', methods=['PUT'])
 @jwt_required()
 def update_station(station_id):
-    """
-    Met à jour une station existante
-    ---
-    tags:
-      - Stations
-    security:
-      - Bearer: []
-    parameters:
-      - name: station_id
-        in: path
-        type: integer
-        required: true
-        description: ID de la station à modifier
-      - name: body
-        in: body
-        required: true
-        schema:
-          type: object
-          properties:
-            name:
-              type: string
-            latitude:
-              type: number
-            longitude:
-              type: number
-            capacity:
-              type: integer
-            address:
-              type: string
-    responses:
-      200:
-        description: Station mise à jour
-      404:
-        description: Station non trouvée
-      401:
-        description: Non authentifié
-      500:
-        description: Erreur serveur
-    """
+    """Met à jour une station existante"""
     data = request.get_json()
+    
+    # 🔍 LOGS DE DEBUG
+    print(f"🔍 PUT /api/stations/{station_id}")
+    print(f"📦 Data reçue: {data}")
     
     try:
         conn = get_db_connection()
+        
+        # Vérifier si la station existe AVANT de modifier
+        existing = conn.execute('SELECT * FROM stations WHERE id = ?', (station_id,)).fetchone()
+        
+        if existing:
+            print(f"✅ Station trouvée: {dict(existing)}")
+        else:
+            print(f"❌ Station {station_id} NOT FOUND en base de données")
+            # Lister toutes les stations pour debug
+            all_stations = conn.execute('SELECT id, name FROM stations LIMIT 10').fetchall()
+            print(f"📋 Premières stations en DB: {[dict(s) for s in all_stations]}")
+            conn.close()
+            return jsonify({'error': f'Station {station_id} non trouvée en base'}), 404
+        
+        # Mise à jour
         conn.execute('''
             UPDATE stations
             SET name = ?, latitude = ?, longitude = ?, capacity = ?, address = ?
@@ -425,11 +251,12 @@ def update_station(station_id):
         ))
         conn.commit()
         
-        if conn.total_changes == 0:
-            return jsonify({'error': 'Station non trouvée'}), 404
-        
+        print(f"✅ Station {station_id} mise à jour avec succès")
         return jsonify({'message': 'Station mise à jour'}), 200
     except Exception as e:
+        print(f"❌ Erreur lors de la mise à jour: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
     finally:
         if 'conn' in locals():
@@ -438,57 +265,47 @@ def update_station(station_id):
 @app.route('/api/stations/<int:station_id>', methods=['DELETE'])
 @jwt_required()
 def delete_station(station_id):
-    """
-    Supprime une station
-    ---
-    tags:
-      - Stations
-    security:
-      - Bearer: []
-    parameters:
-      - name: station_id
-        in: path
-        type: integer
-        required: true
-        description: ID de la station à supprimer
-    responses:
-      200:
-        description: Station supprimée
-      404:
-        description: Station non trouvée
-      401:
-        description: Non authentifié
-      500:
-        description: Erreur serveur
-    """
+    """Supprime une station"""
+    
+    # 🔍 LOGS DE DEBUG
+    print(f"🔍 DELETE /api/stations/{station_id}")
+    
     try:
         conn = get_db_connection()
+        
+        # Vérifier si la station existe AVANT de supprimer
+        existing = conn.execute('SELECT * FROM stations WHERE id = ?', (station_id,)).fetchone()
+        
+        if existing:
+            print(f"✅ Station trouvée: {dict(existing)}")
+        else:
+            print(f"❌ Station {station_id} NOT FOUND en base de données")
+            # Lister toutes les stations pour debug
+            all_stations = conn.execute('SELECT id, name FROM stations LIMIT 10').fetchall()
+            print(f"📋 Premières stations en DB: {[dict(s) for s in all_stations]}")
+            conn.close()
+            return jsonify({'error': f'Station {station_id} non trouvée en base'}), 404
+        
+        # Suppression
         conn.execute('DELETE FROM stations WHERE id = ?', (station_id,))
         conn.commit()
         
-        if conn.total_changes == 0:
-            return jsonify({'error': 'Station non trouvée'}), 404
-        
+        print(f"✅ Station {station_id} supprimée avec succès")
         return jsonify({'message': 'Station supprimée'}), 200
     except Exception as e:
+        print(f"❌ Erreur lors de la suppression: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
     finally:
         if 'conn' in locals():
             conn.close()
 
-# ============== ROUTE DE TEST ==============
+# ============== ROUTES DE TEST ==============
 
 @app.route('/')
 def index():
-    """
-    Page d'accueil - Redirige vers la documentation
-    ---
-    tags:
-      - Accueil
-    responses:
-      200:
-        description: Informations sur l'API
-    """
+    """Page d'accueil"""
     return jsonify({
         'message': 'Bienvenue sur l\'API Vélib',
         'documentation': '/api/docs',
@@ -502,24 +319,7 @@ def index():
 
 @app.route('/api/health', methods=['GET'])
 def health():
-    """
-    Vérification de l'état de l'API
-    ---
-    tags:
-      - Santé
-    responses:
-      200:
-        description: API opérationnelle
-        schema:
-          type: object
-          properties:
-            status:
-              type: string
-              example: OK
-            message:
-              type: string
-              example: API Vélib opérationnelle
-    """
+    """Vérification de l'état de l'API"""
     return jsonify({'status': 'OK', 'message': 'API Vélib opérationnelle'}), 200
 
 if __name__ == '__main__':
