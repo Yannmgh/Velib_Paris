@@ -50,13 +50,15 @@ function StationForm({ station, onClose, onSuccess }) {
         // Mode édition
         await updateStation(station.id, data);
         alert('Station modifiée avec succès !');
+        onSuccess();
       } else {
         // Mode création
         await createStation(data);
         alert('Station créée avec succès !');
+        // Passer les coordonnées à onSuccess pour centrer la carte
+        onSuccess({ latitude: data.latitude, longitude: data.longitude });
       }
-
-      onSuccess();
+      
       onClose();
     } catch (err) {
       setError('Erreur lors de la sauvegarde. Veuillez réessayer.');

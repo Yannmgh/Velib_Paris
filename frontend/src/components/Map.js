@@ -140,6 +140,9 @@ function MapComponent() {
           setEditingStation({
             latitude: e.lngLat.lat,
             longitude: e.lngLat.lng,
+            name: '',
+            capacity: 20,
+            address: ''
           });
           setShowForm(true);
         }
@@ -201,12 +204,33 @@ function MapComponent() {
   }, [stations, showStationPopup]);
 
   const handleAddNew = () => {
-    setEditingStation(null);
+    const center = map.current.getCenter();
+    setEditingStation({
+      latitude: center.lat,
+      longitude: center.lng,
+      name: '',
+      capacity: 20,
+      address: ''
+    });
     setShowForm(true);
   };
 
-  const handleFormSuccess = async () => {
+  const handleFormSuccess = async (newStationCoords) => {
     setShowForm(false);
+    
+    // Si c'est une nouvelle station (avec coordonnées), centrer la carte dessus
+    if (newStationCoords && newStationCoords.latitude && newStationCoords.longitude) {
+      console.log('🎯 Centrage sur la nouvelle station:', newStationCoords);
+      map.current.flyTo({
+        center: [newStationCoords.longitude, newStationCoords.latitude],
+        zoom: 15,
+        duration: 1500
+      });
+      
+      // Attendre que l'animation se termine
+      await new Promise(resolve => setTimeout(resolve, 1600));
+    }
+    
     console.log('🔄 Rechargement après création/modification...');
     await loadStationsNow();
   };
