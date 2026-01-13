@@ -11,10 +11,21 @@ import uuid
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# Active CORS pour permettre au frontend de communiquer avec le backend
-# En production, remplacer par l'URL du frontend déployé
-allowed_origins = os.getenv('FRONTEND_URL', 'https://gray-pebble-0bfc84a03.1.azurestaticapps.net')
-CORS(app, resources={r"/api/*": {"origins": allowed_origins.split(',')}})
+# ============== CONFIGURATION CORS CORRIGÉE ==============
+# Autorise le frontend Azure ET localhost pour le développement
+allowed_origins = [
+    'https://gray-pebble-0bfc84a03.1.azurestaticapps.net',
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:3000'
+]
+
+# Active CORS pour TOUTES les routes (pas seulement /api/*)
+CORS(app, 
+     origins=allowed_origins,
+     supports_credentials=True,
+     allow_headers=["Content-Type", "Authorization"],
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
 # Initialise JWT pour l'authentification
 jwt = JWTManager(app)
@@ -512,4 +523,5 @@ def health():
     return jsonify({'status': 'OK', 'message': 'API Vélib opérationnelle'}), 200
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=False, host='0.0.0.0', port=port)
