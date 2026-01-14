@@ -489,16 +489,201 @@ def index():
       200:
         description: Informations sur l'API
     """
-    return jsonify({
-        'message': 'Bienvenue sur l\'API Vélib',
-        'documentation': '/api/docs',
-        'version': '1.0.0',
-        'endpoints': {
-            'health': '/api/health',
-            'login': '/api/login',
-            'stations': '/api/stations'
-        }
-    }), 200
+    return '''
+    <!DOCTYPE html>
+    <html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>API Vélib - Bornes Paris</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                line-height: 1.6;
+                color: #333;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+            }
+            .container {
+                background: white;
+                max-width: 800px;
+                width: 100%;
+                border-radius: 12px;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                overflow: hidden;
+            }
+            .header {
+                background: linear-gradient(135deg, #3FB1CE 0%, #2E8B9E 100%);
+                color: white;
+                padding: 40px 30px;
+                text-align: center;
+            }
+            .header h1 {
+                font-size: 2.5em;
+                margin-bottom: 10px;
+            }
+            .header p {
+                font-size: 1.1em;
+                opacity: 0.95;
+            }
+            .content {
+                padding: 40px 30px;
+            }
+            .section {
+                margin-bottom: 30px;
+            }
+            .section h2 {
+                color: #3FB1CE;
+                font-size: 1.5em;
+                margin-bottom: 15px;
+                padding-bottom: 10px;
+                border-bottom: 2px solid #e0e0e0;
+            }
+            .endpoints {
+                list-style: none;
+            }
+            .endpoints li {
+                margin: 12px 0;
+                padding: 15px;
+                background: #f8f9fa;
+                border-radius: 8px;
+                transition: all 0.3s ease;
+            }
+            .endpoints li:hover {
+                background: #e9ecef;
+                transform: translateX(5px);
+            }
+            .endpoints a {
+                color: #3FB1CE;
+                text-decoration: none;
+                font-weight: 500;
+                font-size: 1.05em;
+            }
+            .endpoints a:hover {
+                text-decoration: underline;
+            }
+            .badge {
+                display: inline-block;
+                padding: 4px 10px;
+                background: #3FB1CE;
+                color: white;
+                border-radius: 4px;
+                font-size: 0.85em;
+                margin-right: 10px;
+                font-weight: 600;
+            }
+            .info-box {
+                background: #e7f3f8;
+                border-left: 4px solid #3FB1CE;
+                padding: 15px 20px;
+                border-radius: 4px;
+                margin-top: 20px;
+            }
+            .footer {
+                text-align: center;
+                padding: 20px;
+                background: #f8f9fa;
+                color: #666;
+                font-size: 0.9em;
+            }
+            .status {
+                display: inline-block;
+                width: 10px;
+                height: 10px;
+                background: #4CAF50;
+                border-radius: 50%;
+                margin-right: 8px;
+                animation: pulse 2s infinite;
+            }
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.5; }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🚴 API Vélib Paris</h1>
+                <p>API REST de gestion des bornes Vélib</p>
+            </div>
+            
+            <div class="content">
+                <div class="section">
+                    <h2>Documentation</h2>
+                    <ul class="endpoints">
+                        <li>
+                            <a href="/api/docs" target="_blank">
+                                📚 Documentation Swagger Interactive
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="section">
+                    <h2>Endpoints Principaux</h2>
+                    <ul class="endpoints">
+                        <li>
+                            <span class="badge">GET</span>
+                            <a href="/api/health">/api/health</a>
+                            <span style="color: #666; margin-left: 10px;">- Vérification de l'état de l'API</span>
+                        </li>
+                        <li>
+                            <span class="badge">POST</span>
+                            <span style="color: #333;">/api/login</span>
+                            <span style="color: #666; margin-left: 10px;">- Authentification utilisateur</span>
+                        </li>
+                        <li>
+                            <span class="badge">GET</span>
+                            <span style="color: #333;">/api/stations</span>
+                            <span style="color: #666; margin-left: 10px;">- Liste des stations Vélib</span>
+                        </li>
+                        <li>
+                            <span class="badge">POST</span>
+                            <span style="color: #333;">/api/stations</span>
+                            <span style="color: #666; margin-left: 10px;">- Créer une station</span>
+                        </li>
+                        <li>
+                            <span class="badge">PUT</span>
+                            <span style="color: #333;">/api/stations/:id</span>
+                            <span style="color: #666; margin-left: 10px;">- Modifier une station</span>
+                        </li>
+                        <li>
+                            <span class="badge">DELETE</span>
+                            <span style="color: #333;">/api/stations/:id</span>
+                            <span style="color: #666; margin-left: 10px;">- Supprimer une station</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="info-box">
+                    <p><strong>📱 Application Frontend :</strong></p>
+                    <p><a href="https://gray-pebble-0bfc84a03.1.azurestaticapps.net/" target="_blank" style="color: #3FB1CE;">https://gray-pebble-0bfc84a03.1.azurestaticapps.net/</a></p>
+                </div>
+
+                <div class="info-box" style="margin-top: 15px;">
+                    <p><strong>🔐 Identifiants de test :</strong></p>
+                    <p>Username : <code>admin</code> | Password : <code>admin123</code></p>
+                </div>
+            </div>
+
+            <div class="footer">
+                <p><span class="status"></span>API Opérationnelle - Version 1.0.0</p>
+                <p style="margin-top: 5px;">Développé par Yann HOUNDJO</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    '''
 
 @app.route('/api/health', methods=['GET'])
 def health():
